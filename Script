@@ -1,0 +1,44 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+
+local rf = ReplicatedStorage:FindFirstChild("GetFriendStatus") or Instance.new("RemoteFunction")
+rf.Name = "GetFriendStatus"
+rf.Parent = ReplicatedStorage
+
+local te = ReplicatedStorage:FindFirstChild("TeleportToFriend") or Instance.new("RemoteEvent")
+te.Name = "TeleportToFriend"
+te.Parent = ReplicatedStorage
+
+rf.OnServerInvoke = function(player, targetUsername)
+	local success, userId = pcall(function()
+		return Players:GetUserIdFromNameAsync(targetUsername)
+	end)
+
+	if success and userId then
+		local s, info = pcall(function()
+			return TeleportService:GetPlayerPlaceInstanceAsync(userId)
+		end)
+
+		if s and info then
+			return true, {
+				online = true, 
+				placeId = info.PlaceId, 
+				jobId = info.GameId,
+				id = userId
+			}
+		else
+			return true, {
+				online = false,
+				id = userId
+			}
+		end
+	end
+	return false, "Usuário não encontrado"
+end
+
+te.OnServerEvent:Connect(function(player, placeId, jobId)
+	if placeId and jobId then
+		TeleportService:TeleportToPlaceInstance(placeId, jobId, player)
+	end
+end)
